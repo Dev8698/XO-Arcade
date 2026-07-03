@@ -30,7 +30,7 @@ function setupAuthListener() {
             // Set access token cookie
             // Expire time matches session token lifetime (expires_in in seconds)
             const maxAge = session.expires_in;
-            document.cookie = `access_token=${session.access_token}; path=/; max-age=${maxAge}; Secure; SameSite=None`;
+            document.cookie = `access_token=${session.access_token}; path=/; max-age=${maxAge}; Secure; SameSite=Lax`;
             
             // If on login/signup page, redirect to dashboard on successful login
             const path = window.location.pathname;
@@ -39,7 +39,7 @@ function setupAuthListener() {
             }
         } else {
             // Delete cookie
-            document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=None';
+            document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Lax';
             
             // Redirect unauthenticated users to login page if they are on a protected page
             const path = window.location.pathname;
@@ -60,7 +60,7 @@ async function logoutUser() {
         }
     }
     // Double check cookie removal
-    document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=None';
+    document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Lax';
     window.location.href = '/login';
 }
 
