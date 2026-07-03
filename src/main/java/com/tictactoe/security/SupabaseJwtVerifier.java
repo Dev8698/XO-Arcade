@@ -23,25 +23,40 @@ public class SupabaseJwtVerifier {
     private final JWTVerifier hsVerifier;
     private JWTVerifier esVerifier;
 
+    private String cleanSecret(String val) {
+        if (val == null) return "";
+        String cleaned = val.trim();
+        if (cleaned.startsWith("\"") && cleaned.endsWith("\"")) {
+            cleaned = cleaned.substring(1, cleaned.length() - 1);
+        } else if (cleaned.startsWith("'") && cleaned.endsWith("'")) {
+            cleaned = cleaned.substring(1, cleaned.length() - 1);
+        }
+        return cleaned.trim();
+    }
+
     public SupabaseJwtVerifier(
             @Value("${supabase.jwt.secret}") String jwtSecret,
             @Value("${supabase.jwt.jwk.x:}") String jwkX,
             @Value("${supabase.jwt.jwk.y:}") String jwkY) {
         
+        String cleanJwtSecret = cleanSecret(jwtSecret);
+        String cleanJwkX = cleanSecret(jwkX);
+        String cleanJwkY = cleanSecret(jwkY);
+
         // 1. Initialize HS256 Verifier
         byte[] secretBytes;
         try {
-            secretBytes = Base64.getDecoder().decode(jwtSecret.trim());
+            secretBytes = Base64.getDecoder().decode(cleanJwtSecret);
         } catch (IllegalArgumentException e) {
-            secretBytes = jwtSecret.getBytes();
+            secretBytes = cleanJwtSecret.getBytes();
         }
         Algorithm hsAlgorithm = Algorithm.HMAC256(secretBytes);
         this.hsVerifier = JWT.require(hsAlgorithm).build();
 
         // 2. Initialize ES256 Verifier if public key coordinates are provided
-        if (jwkX != null && !jwkX.trim().isEmpty() && jwkY != null && !jwkY.trim().isEmpty()) {
+        if (!cleanJwkX.isEmpty() && !cleanJwkY.isEmpty()) {
             try {
-                ECPublicKey publicKey = getPublicKey(jwkX.trim(), jwkY.trim());
+                ECPublicKey publicKey = getPublicKey(cleanJwkX, cleanJwkY);
                 Algorithm esAlgorithm = Algorithm.ECDSA256(publicKey, null);
                 this.esVerifier = JWT.require(esAlgorithm).build();
             } catch (Exception e) {
