@@ -66,11 +66,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 e.printStackTrace();
                 SecurityContextHolder.clearContext();
                 
-                // Optional: Clear cookie to prevent infinite retries
-                Cookie cookie = new Cookie("access_token", null);
-                cookie.setPath("/");
-                cookie.setMaxAge(0);
-                response.addCookie(cookie);
+                // Clear cookie using explicit headers to ensure modern browsers accept deletion of Secure/Lax cookies
+                response.setHeader("Set-Cookie", "access_token=; Path=/; Max-Age=0; Secure; SameSite=Lax");
             }
         }
 
