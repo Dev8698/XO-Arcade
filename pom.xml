@@ -14,6 +14,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>multiplayer-tictactoe</name>
     <description>Multiplayer Tic Tac Toe using Spring Boot and Supabase</description>
+    <packaging>war</packaging>
     
     <properties>
         <java.version>17</java.version>

@@ -41,7 +41,8 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/reset-password"),
                     new AntPathRequestMatcher("/static/**"),
                     new AntPathRequestMatcher("/ws/**"),
-                    new AntPathRequestMatcher("/api/config/supabase")
+                    new AntPathRequestMatcher("/api/config/supabase"),
+                    new AntPathRequestMatcher("/error")
                 ).permitAll()
                 .anyRequest().authenticated()
             )
