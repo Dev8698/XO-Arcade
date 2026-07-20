@@ -1,46 +1,34 @@
 package com.tictactoe.controller;
 
 import com.tictactoe.entity.MatchHistory;
-import com.tictactoe.entity.User;
 import com.tictactoe.security.AuthenticatedUser;
 import com.tictactoe.service.MatchHistoryService;
-import com.tictactoe.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
-@Controller
+@RestController
 public class MatchHistoryController {
 
     private final MatchHistoryService matchHistoryService;
-    private final UserService userService;
 
     @Autowired
-    public MatchHistoryController(MatchHistoryService matchHistoryService, UserService userService) {
+    public MatchHistoryController(MatchHistoryService matchHistoryService) {
         this.matchHistoryService = matchHistoryService;
-        this.userService = userService;
     }
 
-    @GetMapping("/history")
-    public String matchHistory(@AuthenticationPrincipal AuthenticatedUser authUser,
-                               @RequestParam(required = false, defaultValue = "ALL") String filter,
-                               Model model) {
+    @GetMapping("/api/history")
+    public ResponseEntity<List<MatchHistory>> getHistoryJson(@AuthenticationPrincipal AuthenticatedUser authUser,
+                                                             @RequestParam(required = false, defaultValue = "ALL") String filter) {
         if (authUser == null) {
-            return "redirect:/login";
+            return ResponseEntity.status(401).build();
         }
-        User user = userService.getUserById(authUser.getId());
         List<MatchHistory> history = matchHistoryService.getMatchHistoryFiltered(authUser.getId(), filter);
-
-        model.addAttribute("currentUser", user);
-        model.addAttribute("historyList", history);
-        model.addAttribute("selectedFilter", filter.toUpperCase());
-        model.addAttribute("activePage", "history");
-        model.addAttribute("pageTitle", "Match History - Tic Tac Toe");
-        return "history";
+        return ResponseEntity.ok(history);
     }
 }

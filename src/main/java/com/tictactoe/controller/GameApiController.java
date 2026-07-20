@@ -95,4 +95,37 @@ public class GameApiController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    @GetMapping("/session/{id}")
+    public ResponseEntity<?> getSession(@AuthenticationPrincipal AuthenticatedUser authUser,
+                                        @PathVariable String id) {
+        if (authUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            GameSession session = gameSessionService.getGameSession(id);
+            // Security check: only players of this session can access
+            boolean isPlayerX = session.getPlayerX().getId().equals(authUser.getId());
+            boolean isPlayerO = session.getPlayerO() != null && session.getPlayerO().getId().equals(authUser.getId());
+            if (!isPlayerX && !isPlayerO && !"WAITING".equals(session.getStatus())) {
+                return ResponseEntity.status(403).build();
+            }
+            return ResponseEntity.ok(session);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createGameSession(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        if (authUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            GameSession session = gameSessionService.createGameSession(authUser.getId());
+            return ResponseEntity.ok(session);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }

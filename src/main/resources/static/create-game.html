@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Session - XO Arcade</title>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Supabase Client JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<!-- NAVBAR PLACEHOLDER -->
+<div id="navbar-placeholder"></div>
+
+<div class="main-content container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            
+            <div class="card bg-dark-card border-neon-cyan p-4 pulse-glow text-center">
+                <h3 class="fw-bold mb-3 text-neon-cyan"><i class="bi bi-controller me-2"></i>CREATE GAME SESSION</h3>
+                <p class="text-muted-custom small mb-4">Initialize a secure session on the grid. You will receive a unique game code to share with your opponent.</p>
+                
+                <form action="/game/create" method="POST">
+                    <!-- Play Side Selection -->
+                    <div class="mb-4">
+                        <label class="form-label text-light fw-semibold d-block mb-3">CHOOSE YOUR SYMBOL</label>
+                        <div class="d-flex justify-content-center gap-4">
+                            <div class="form-check form-check-inline p-0 m-0">
+                                <input class="btn-check" type="radio" name="side" id="sideX" value="X" checked>
+                                <label class="btn btn-outline-info px-4 py-3 fw-bold tracking-wide" for="sideX" style="width: 120px; font-size: 1.5rem;">
+                                    X
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline p-0 m-0">
+                                <input class="btn-check" type="radio" name="side" id="sideO" value="O" disabled>
+                                <label class="btn btn-outline-secondary px-4 py-3 fw-bold tracking-wide text-muted" for="sideO" style="width: 120px; font-size: 1.5rem; opacity: 0.5;" title="Player O joined later">
+                                    O
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted-custom mt-2 d-block fs-8">Note: Session creators are assigned Symbol X by default.</small>
+                    </div>
+
+                    <!-- Match Rules Card -->
+                    <div class="card bg-dark-glass border-secondary p-3 mb-4 text-start">
+                        <h6 class="fw-bold text-light mb-2"><i class="bi bi-shield-fill-check me-2 text-neon-pink"></i>ARENA RULES</h6>
+                        <ul class="text-muted-custom small mb-0 ps-3">
+                            <li>Each player has a turn to make a move.</li>
+                            <li>Playing on occupied cells is strictly prohibited.</li>
+                            <li>Winning conditions: 3 in a row (horizontal, vertical, or diagonal).</li>
+                            <li>Connection dropout counts as immediate forfeit.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Launch Button -->
+                    <button type="submit" class="btn btn-neon-cyan w-100 py-3 d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-rocket-takeoff-fill"></i>
+                        <span>INITIALIZE GRID LOBBY</span>
+                    </button>
+                </form>
+                
+                <a href="/dashboard" class="btn btn-outline-secondary w-100 mt-2 text-muted-custom">
+                    CANCEL
+                </a>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER PLACEHOLDER -->
+<div id="footer-placeholder"></div>
+
+<!-- CHALLENGE MODAL PLACEHOLDER -->
+<div id="challenge-modal-placeholder"></div>
+
+<!-- Global Toast Container -->
+<div class="toast-container-custom" id="toastContainer"></div>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- SockJS and STOMP for Realtime WebSockets -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<!-- Shared App JS -->
+<script src="/static/js/auth.js?v=2"></script>
+<script src="/static/js/main.js"></script>
+
+</body>
+</html>

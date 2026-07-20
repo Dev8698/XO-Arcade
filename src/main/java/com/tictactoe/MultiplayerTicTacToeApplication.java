@@ -7,12 +7,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 
 @SpringBootApplication
-public class MultiplayerTicTacToeApplication extends SpringBootServletInitializer {
-
-    @Override
-    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-        return application.sources(MultiplayerTicTacToeApplication.class);
-    }
+public class MultiplayerTicTacToeApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(MultiplayerTicTacToeApplication.class, args);

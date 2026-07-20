@@ -1,85 +1,3 @@
-// Toast helper for displaying micro-notifications
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type} border-0 show mb-2`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    container.appendChild(toast);
-    
-    // Auto-remove after 4 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
-}
-
-// Global state for current game challenge
-let currentChallengeId = null;
-let challengeModal = null;
-
-// Initialize WebSocket connection for real-time notifications
-let stompClient = null;
-
-function connectWebSocket() {
-    const socket = new SockJS('/ws');
-    stompClient = Stomp.over(socket);
-    
-    // Disable logging for cleaner console unless debugging
-    stompClient.debug = null;
-
-    stompClient.connect({}, function (frame) {
-        // Subscribe to user-specific notifications queue
-        stompClient.subscribe('/user/queue/notifications', function (notificationMsg) {
-            const notification = JSON.parse(notificationMsg.body);
-            handleRealtimeNotification(notification);
-        });
-    }, function (error) {
-        console.warn("WebSocket connection lost. Retrying in 5 seconds...", error);
-        setTimeout(connectWebSocket, 5000);
-    });
-}
-
-// Handle realtime WebSocket notifications
-function handleRealtimeNotification(notification) {
-    if (notification.type === 'GAME_START') {
-        window.location.href = `/game/board/${notification.gameSessionId}`;
-        return;
-    }
-
-    // Show toast for the notification
-    showToast(notification.message, 'info');
-    
-    // Refresh lists
-    loadNotifications();
-    loadFriendsList();
-
-    // If it's a game invitation challenge, trigger modal
-    if (notification.type === 'GAME_INVITATION' && !notification.readStatus) {
-        currentChallengeId = notification.id;
-        
-        document.getElementById('challenger-username').innerText = notification.sender.username;
-        document.getElementById('challenger-avatar').src = notification.sender.avatar || 'https://robohash.org/guest.png?set=set4';
-        
-        if (!challengeModal) {
-            challengeModal = new bootstrap.Modal(document.getElementById('challengeReceivedModal'));
-        }
-        challengeModal.show();
-    }
-}
-
 // Fetch and render friends list
 async function loadFriendsList() {
     try {
@@ -156,7 +74,12 @@ async function loadNotifications() {
         }
 
         listContainer.innerHTML = '';
-        notifications.forEach(notif => {
+        
+        // Show only latest 3 notifications on dashboard card
+        const showMoreBtnNeeded = notifications.length > 3;
+        const displayList = notifications.slice(0, 3);
+        
+        displayList.forEach(notif => {
             const item = document.createElement('div');
             const unreadClass = notif.readStatus ? '' : 'bg-dark-glass border-start border-neon-cyan';
             item.className = `list-group-item bg-transparent border-secondary text-light py-3 px-3 ${unreadClass}`;
@@ -197,6 +120,17 @@ async function loadNotifications() {
             `;
             listContainer.appendChild(item);
         });
+
+        if (showMoreBtnNeeded) {
+            const showMoreRow = document.createElement('div');
+            showMoreRow.className = 'list-group-item bg-transparent text-center border-secondary py-3 px-3';
+            showMoreRow.innerHTML = `
+                <a href="/notifications" class="btn btn-sm btn-neon-cyan px-4 py-2 w-100">
+                    <i class="bi bi-arrow-right-circle-fill me-2"></i>SHOW MORE
+                </a>
+            `;
+            listContainer.appendChild(showMoreRow);
+        }
     } catch (error) {
         console.error("Error loading notifications:", error);
     }
@@ -262,47 +196,6 @@ async function rejectFriendRequest(notificationId) {
     }
 }
 
-// Accept/Decline game challenge from notification direct button
-async function acceptGameChallengeDirectly(notificationId) {
-    try {
-        const response = await fetch(`/api/game/challenge/${notificationId}/accept`, { method: 'POST' });
-        if (response.ok) {
-            const data = await response.json();
-            // Redirect user to the game session board
-            window.location.href = `/game/board/${data.gameId}`;
-        } else {
-            showToast("Game session is no longer active.", "danger");
-            loadNotifications();
-        }
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-async function rejectGameChallengeDirectly(notificationId) {
-    try {
-        await fetch(`/api/game/challenge/${notificationId}/reject`, { method: 'POST' });
-        loadNotifications();
-    } catch (err) {
-        console.error(err);
-    }
-}
-
-// Accept/Decline challenge from modal popup
-async function acceptGameChallenge() {
-    if (currentChallengeId) {
-        await acceptGameChallengeDirectly(currentChallengeId);
-        challengeModal.hide();
-    }
-}
-
-async function rejectGameChallenge() {
-    if (currentChallengeId) {
-        await rejectGameChallengeDirectly(currentChallengeId);
-        challengeModal.hide();
-    }
-}
-
 // Join game session via code input box
 async function joinGameSession() {
     const codeInput = document.getElementById('gameCodeInput');
@@ -341,10 +234,9 @@ async function joinGameSession() {
 }
 
 // Page load initialization
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('userReady', () => {
     loadFriendsList();
     loadNotifications();
-    connectWebSocket();
     
     // Poll for status updates occasionally as fallback
     setInterval(() => {

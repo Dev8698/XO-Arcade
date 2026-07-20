@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting Room - XO Arcade</title>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Supabase Client JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+<!-- NAVBAR PLACEHOLDER -->
+<div id="navbar-placeholder"></div>
+
+<div class="main-content container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8 text-center">
+            
+            <div class="card bg-dark-card border-neon-cyan p-5">
+                <h2 class="fw-bold text-light mb-2">GRID WAITING ROOM</h2>
+                <p class="text-muted-custom small mb-4">Share this room key. Match launches immediately upon opponent's entry.</p>
+
+                <!-- GAME CODE CONTAINER -->
+                <div class="mb-4">
+                    <span class="text-muted-custom d-block small uppercase mb-1">ROOM ACCESS KEY</span>
+                    <div class="d-flex justify-content-center align-items-center gap-2">
+                        <span id="roomCode" class="fs-1 fw-extrabold tracking-wide text-neon-cyan bg-dark-glass border border-neon-cyan px-4 py-2 rounded" style="font-family: monospace;">
+                            ------
+                        </span>
+                        <button class="btn btn-neon-cyan p-3" onclick="copyRoomCode()" title="Copy Code">
+                            <i class="bi bi-copy fs-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- WAITING ANIMATION -->
+                <div class="py-4 my-2 position-relative d-flex justify-content-center align-items-center">
+                    <div class="spinner-grow text-neon-cyan" style="width: 5rem; height: 5rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="position-absolute text-neon-cyan fw-bold" style="font-size: 0.9rem;">WAITING</div>
+                </div>
+
+                <!-- OPPONENT STATUS -->
+                <div class="mb-5">
+                    <h5 class="text-muted-custom" id="opponentStatus">
+                        <i class="bi bi-person-fill-exclamation me-2"></i>Waiting for opponent to materialize...
+                    </h5>
+                </div>
+
+                <!-- CANCEL GAME BUTTON -->
+                <button id="abort-btn" class="btn btn-outline-danger w-100 py-3 text-neon-pink border-neon-pink">
+                    <i class="bi bi-x-circle-fill me-2"></i>ABORT LOBBY SESSION
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- FOOTER PLACEHOLDER -->
+<div id="footer-placeholder"></div>
+
+<!-- CHALLENGE MODAL PLACEHOLDER -->
+<div id="challenge-modal-placeholder"></div>
+
+<!-- Global Toast Container -->
+<div class="toast-container-custom" id="toastContainer"></div>
+
+<!-- Bootstrap 5 Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- SockJS and STOMP for Realtime WebSockets -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<!-- Shared App JS -->
+<script src="/static/js/auth.js?v=2"></script>
+<script src="/static/js/main.js"></script>
+
+<script>
+    const gameSessionId = window.location.pathname.split('/').pop();
+
+    async function initLobby() {
+        try {
+            const response = await fetch(`/api/game/session/${gameSessionId}`);
+            if (!response.ok) {
+                window.location.href = '/dashboard';
+                return;
+            }
+            const session = await response.json();
+            document.getElementById('roomCode').innerText = session.gameCode;
+            
+            const abortBtn = document.getElementById('abort-btn');
+            if (abortBtn) {
+                abortBtn.onclick = () => cancelLobby(session.id);
+            }
+            
+            if (session.status === 'PLAYING') {
+                window.location.href = `/game/board/${session.id}`;
+            }
+        } catch (err) {
+            console.error(err);
+            window.location.href = '/dashboard';
+        }
+    }
+
+    document.addEventListener('userReady', () => {
+        initLobby();
+    });
+</script>
+
+<!-- Lobby Waiting Room JS -->
+<script src="/static/js/lobby.js"></script>
+
+</body>
+</html>

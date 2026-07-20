@@ -164,4 +164,13 @@ public class FriendApiController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    @GetMapping("/pending")
+    public ResponseEntity<List<FriendRequest>> getPendingRequests(@AuthenticationPrincipal AuthenticatedUser authUser) {
+        if (authUser == null) {
+            return ResponseEntity.status(401).build();
+        }
+        List<FriendRequest> requests = friendService.getPendingRequestsReceived(authUser.getId());
+        return ResponseEntity.ok(requests);
+    }
 }

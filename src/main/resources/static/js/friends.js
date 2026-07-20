@@ -1,103 +1,3 @@
-// Toast helper for displaying micro-notifications
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type} border-0 show mb-2`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    container.appendChild(toast);
-    
-    // Auto-remove after 4 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
-}
-
-// Global state for current game challenge
-let currentChallengeId = null;
-let challengeModal = null;
-let stompClient = null;
-
-function connectWebSocket() {
-    const socket = new SockJS('/ws');
-    stompClient = Stomp.over(socket);
-    stompClient.debug = null;
-
-    stompClient.connect({}, function (frame) {
-        stompClient.subscribe('/user/queue/notifications', function (notificationMsg) {
-            const notification = JSON.parse(notificationMsg.body);
-            handleRealtimeNotification(notification);
-        });
-    }, function (error) {
-        console.warn("WebSocket connection lost. Retrying in 5 seconds...", error);
-        setTimeout(connectWebSocket, 5000);
-    });
-}
-
-function handleRealtimeNotification(notification) {
-    if (notification.type === 'GAME_START') {
-        window.location.href = `/game/board/${notification.gameSessionId}`;
-        return;
-    }
-
-    showToast(notification.message, 'info');
-    
-    // If it's a game invitation challenge, trigger modal
-    if (notification.type === 'GAME_INVITATION' && !notification.readStatus) {
-        currentChallengeId = notification.id;
-        
-        document.getElementById('challenger-username').innerText = notification.sender.username;
-        document.getElementById('challenger-avatar').src = notification.sender.avatar || 'https://robohash.org/guest.png?set=set4';
-        
-        if (!challengeModal) {
-            challengeModal = new bootstrap.Modal(document.getElementById('challengeReceivedModal'));
-        }
-        challengeModal.show();
-    }
-}
-
-// Accept/Decline challenge from modal popup
-async function acceptGameChallenge() {
-    if (currentChallengeId) {
-        try {
-            const response = await fetch(`/api/game/challenge/${currentChallengeId}/accept`, { method: 'POST' });
-            if (response.ok) {
-                const data = await response.json();
-                window.location.href = `/game/board/${data.gameId}`;
-            } else {
-                showToast("Game session is no longer active.", "danger");
-            }
-        } catch (err) {
-            console.error(err);
-        }
-        challengeModal.hide();
-    }
-}
-
-async function rejectGameChallenge() {
-    if (currentChallengeId) {
-        try {
-            await fetch(`/api/game/challenge/${currentChallengeId}/reject`, { method: 'POST' });
-        } catch (err) {
-            console.error(err);
-        }
-        challengeModal.hide();
-    }
-}
-
 // SEARCH USER PLAYERS
 async function searchPlayers() {
     const input = document.getElementById('searchPlayerInput');
@@ -160,6 +60,7 @@ async function sendFriendRequest(receiverId) {
                 btn.className = 'btn btn-sm btn-outline-secondary fs-9 py-1 px-2 text-muted-custom';
                 btn.innerHTML = '<i class="bi bi-check-lg"></i> SENT';
             }
+            loadPendingRequests();
         } else {
             const errorMsg = await response.text();
             showToast(errorMsg || "Unable to send request.", "danger");
@@ -178,7 +79,7 @@ async function acceptFriendRequestDirect(requestId) {
         const response = await fetch(`/api/friends/request/direct/${requestId}/accept`, { method: 'POST' });
         if (response.ok) {
             showToast("Friend request accepted!", "success");
-            setTimeout(() => window.location.reload(), 1000);
+            loadFriendsPageData();
         } else {
             showToast("Failed to accept request.", "danger");
         }
@@ -193,7 +94,7 @@ async function rejectFriendRequestDirect(requestId) {
         const response = await fetch(`/api/friends/request/direct/${requestId}/reject`, { method: 'POST' });
         if (response.ok) {
             showToast("Request declined.", "info");
-            setTimeout(() => window.location.reload(), 1000);
+            loadFriendsPageData();
         } else {
             showToast("Failed to decline request.", "danger");
         }
@@ -212,7 +113,7 @@ async function removeFriend(friendId) {
         const response = await fetch(`/api/friends/remove/${friendId}`, { method: 'DELETE' });
         if (response.ok) {
             showToast("Friend removed.", "info");
-            setTimeout(() => window.location.reload(), 1000);
+            loadFriendsPageData();
         } else {
             showToast("Unable to remove friend.", "danger");
         }
@@ -235,9 +136,114 @@ async function challengeFromFriendsPage(friendId) {
     }
 }
 
+// FETCH AND RENDER PENDING REQUESTS
+async function loadPendingRequests() {
+    try {
+        const response = await fetch('/api/friends/pending');
+        if (!response.ok) return;
+        const pending = await response.json();
+        const container = document.getElementById('pending-requests-list');
+        if (!container) return;
+
+        if (pending.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted-custom py-4 small">
+                    <i class="bi bi-check-circle fs-3 mb-2 d-block"></i> No pending invitations.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        pending.forEach(req => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item bg-transparent border-secondary text-light d-flex align-items-center justify-content-between py-3 px-3';
+            item.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <img src="${req.sender.avatar || 'https://robohash.org/' + req.sender.username + '.png?set=set4'}" class="rounded-circle me-2" style="width:35px; height:35px;">
+                    <span class="fw-semibold small">${req.sender.username}</span>
+                </div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-neon-cyan px-2 py-1 fs-8" onclick="acceptFriendRequestDirect(${req.id})">ACCEPT</button>
+                    <button class="btn btn-sm btn-outline-secondary px-2 py-1 fs-8 text-muted-custom" onclick="rejectFriendRequestDirect(${req.id})">DECLINE</button>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    } catch (err) {
+        console.error("Error loading pending requests:", err);
+    }
+}
+
+// FETCH AND RENDER FRIENDS LIST
+async function loadFriendsList() {
+    loadPendingRequests();
+    try {
+        const response = await fetch('/api/friends/active');
+        if (!response.ok) return;
+        const friends = await response.json();
+        const container = document.getElementById('friends-list-container');
+        const headerTitle = document.getElementById('friends-count-title');
+        if (!container) return;
+
+        if (headerTitle) {
+            headerTitle.innerText = `MY FRIENDS (${friends.length})`;
+        }
+
+        if (friends.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted-custom py-5">
+                    <i class="bi bi-person-x fs-1 mb-2 d-block"></i>
+                    <h5>No Friends Yet</h5>
+                    <p class="small">Use the search box on the left to add players to your friend circle.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+        friends.forEach(friend => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item bg-transparent border-secondary text-light d-flex align-items-center justify-content-between py-3 px-3';
+            
+            const btnChallenge = friend.online 
+                ? `<button class="btn btn-sm btn-neon-cyan py-1 px-3 fs-8" onclick="challengeFromFriendsPage('${friend.id}')"><i class="bi bi-sword me-1"></i> CHALLENGE</button>`
+                : `<button class="btn btn-sm btn-outline-secondary py-1 px-3 fs-8 text-muted-custom" disabled>CHALLENGE</button>`;
+
+            item.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="position-relative">
+                        <img src="${friend.avatar || 'https://robohash.org/' + friend.username + '.png?set=set4'}" class="rounded-circle me-2" style="width:45px; height:45px; border: 1px solid rgba(138,43,226,0.3)">
+                        <span class="position-absolute bottom-0 end-0 p-1 rounded-circle border border-dark ${friend.online ? 'bg-success' : 'bg-secondary'}" style="width:10px; height:10px;"></span>
+                    </div>
+                    <div>
+                        <span class="fw-semibold d-block text-white">${friend.username}</span>
+                        <span class="text-muted-custom fs-8">${friend.online ? 'ONLINE' : 'OFFLINE'}</span>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    ${btnChallenge}
+                    <button class="btn btn-sm btn-outline-danger py-1 px-2 fs-8" onclick="removeFriend('${friend.id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    } catch (err) {
+        console.error("Error loading friends list:", err);
+    }
+}
+
+function loadFriendsPageData() {
+    loadPendingRequests();
+    loadFriendsList();
+}
+
 // Load initialization
-document.addEventListener('DOMContentLoaded', () => {
-    connectWebSocket();
+document.addEventListener('userReady', () => {
+    loadFriendsPageData();
     
     // Add enter-key listener for search box
     const searchInput = document.getElementById('searchPlayerInput');

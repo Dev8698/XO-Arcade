@@ -1,31 +1,3 @@
-// Toast helper for displaying micro-notifications
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type === 'info' ? 'primary' : type} border-0 show mb-2`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    container.appendChild(toast);
-    
-    // Auto-remove after 4 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
-}
-
 // Copy Game Code to Clipboard
 function copyRoomCode() {
     const codeElement = document.getElementById('roomCode');
@@ -54,25 +26,28 @@ async function cancelLobby(gameId) {
 }
 
 // WebSocket Connection to listen for matchmaking
-let stompClient = null;
+let lobbyStompClient = null;
 
 function connectLobbySocket() {
     if (!gameSessionId) return;
 
     const socket = new SockJS('/ws');
-    stompClient = Stomp.over(socket);
-    stompClient.debug = null; // Disable debug output
+    lobbyStompClient = Stomp.over(socket);
+    lobbyStompClient.debug = null; // Disable debug output
 
-    stompClient.connect({}, function (frame) {
+    lobbyStompClient.connect({}, function (frame) {
         // Subscribe to game session updates
-        stompClient.subscribe(`/topic/game/${gameSessionId}`, function (messageOutput) {
+        lobbyStompClient.subscribe(`/topic/game/${gameSessionId}`, function (messageOutput) {
             const session = JSON.parse(messageOutput.body);
             
             // If the game status transitions to PLAYING, redirect both users to board
             if (session.status === 'PLAYING') {
-                document.getElementById('opponentStatus').innerHTML = `
-                    <span class="text-neon-cyan"><i class="bi bi-person-check-fill me-2"></i>OPPONENT MATERIALIZED! LAUNCHING ARENA...</span>
-                `;
+                const opponentStatus = document.getElementById('opponentStatus');
+                if (opponentStatus) {
+                    opponentStatus.innerHTML = `
+                        <span class="text-neon-cyan"><i class="bi bi-person-check-fill me-2"></i>OPPONENT MATERIALIZED! LAUNCHING ARENA...</span>
+                    `;
+                }
                 
                 showToast("Opponent joined! Relocating to combat board...", "success");
                 
@@ -88,6 +63,6 @@ function connectLobbySocket() {
 }
 
 // Page load initialization
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('userReady', () => {
     connectLobbySocket();
 });
