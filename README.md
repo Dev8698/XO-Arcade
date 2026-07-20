@@ -102,3 +102,9 @@ sequenceDiagram
    ```
 3. **Browser Refresh:**
    Launch `http://localhost:8080` and use `Ctrl` + `F5` to refresh client-side styles.
+
+<p align="center">
+  <a href="https://xo-arcade.onrender.com/" target="_blank">
+    <img src="https://img.shields.io/badge/🚀%20Play%20XO%20Arcade-Live-success?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live Demo">
+  </a>
+</p>
